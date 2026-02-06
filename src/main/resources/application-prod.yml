@@ -1,0 +1,15 @@
+spring:
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+
+ksef:
+  api:
+    base-url: https://ksef.mf.gov.pl/api
+    environment: PROD
+
+logging:
+  level:
+    root: WARN
+    pl.ksef.hub: INFO

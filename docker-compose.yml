@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ksef-hub-db
+    environment:
+      POSTGRES_DB: ksef_hub
+      POSTGRES_USER: ksef_user
+      POSTGRES_PASSWORD: ksef_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ksef-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ksef_user -d ksef_hub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ksef-hub-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ksef_hub
+      SPRING_DATASOURCE_USERNAME: ksef_user
+      SPRING_DATASOURCE_PASSWORD: ksef_password
+      JWT_SECRET: your-secret-key-change-in-production-minimum-256-bits-long-for-security
+    ports:
+      - "8080:8080"
+    networks:
+      - ksef-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  ksef-network:
+    driver: bridge

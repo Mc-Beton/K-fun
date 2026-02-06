@@ -1,0 +1,14 @@
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+
+ksef:
+  api:
+    base-url: https://ksef-demo.mf.gov.pl/api
+    environment: DEMO
+
+logging:
+  level:
+    pl.ksef.hub: DEBUG
