@@ -38,8 +38,9 @@ Kompleksowa platforma do integracji z polskim systemem **KSeF 2.0** (Krajowy Sys
 ### Dokumentacja KSeF 2.0:
 
 - [KSEF_2.0_DONE.md](KSEF_2.0_DONE.md) - ✅ Podsumowanie aktualizacji
-- [KSEF_COMPLIANCE.md](KSEF_COMPLIANCE.md) - ⚠️ Analiza zgodności
+- [KSEF_COMPLIANCE.md](KSEF_COMPLIANCE.md) - ✅ Analiza zgodności
 - [KSEF_2.0_UPDATE.md](KSEF_2.0_UPDATE.md) - 📋 Szczegóły techniczne
+- [KSEF_XSD_UPDATE.md](KSEF_XSD_UPDATE.md) - 📋 Lokalne schematy XSD i walidacja
 
 ## 📋 Wymagania
 

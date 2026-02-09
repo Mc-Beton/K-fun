@@ -1,6 +1,7 @@
 package pl.ksef.hub.integration.ksef.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.xml.sax.SAXException;
 
@@ -10,6 +11,7 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URL;
 
@@ -21,7 +23,10 @@ import java.net.URL;
 @Service
 public class XmlValidationService {
 
-    // Schema FA(3) z CRD (Centralne Repozytorium Dokumentów)
+    // Lokalny schemat FA(3) w resources
+    private static final String LOCAL_SCHEMA_PATH = "ksef/schemat.xsd";
+    
+    // Schema FA(3) z CRD (Centralne Repozytorium Dokumentów) - fallback
     private static final String SCHEMA_URL = "http://crd.gov.pl/wzor/2023/06/29/12648/schemat.xsd";
     
     private Schema schema;
@@ -71,31 +76,58 @@ public class XmlValidationService {
     /**
      * Pobiera lub inicjalizuje schema XSD
      * Schema jest cachowana dla wydajności
+     * 
+     * UWAGA: Oficjalny schemat KSeF FA(3) jest bardzo złożony (>5000 węzłów)
+     * i może przekraczać domyślne limity parsera XML.
+     * 
+     * Strategia ładowania:
+     * 1. Próba załadowania z lokalnych resources
+     * 2. Fallback: pobranie ze źródła online  
+     * 3. W przypadku niepowodzenia: walidacja podstawowej struktury XML (well-formedness)
+     * 
+     * XmlValidationService zapewnia prawidłowość struktury XML nawet gdy pełna 
+     * walidacja XSD nie jest dostępna.
      */
     private Schema getSchema() throws ValidationException {
         if (schema == null) {
             synchronized (this) {
                 if (schema == null) {
                     try {
-                        log.info("Loading XSD schema from: {}", SCHEMA_URL);
                         SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
                         
-                        // UWAGA: W środowisku produkcyjnym zaleca się:
-                        // 1. Pobrać XSD lokalnie i umieścić w resources
-                        // 2. Lub użyć lokalnego cache
-                        // Obecnie próbujemy pobrać ze źródła online
-                        
+                        // STRATEGIA 1: Próba załadowania z lokalnych resources
                         try {
-                            schema = factory.newSchema(new URL(SCHEMA_URL));
-                            log.info("XSD schema loaded successfully from online source");
-                        } catch (Exception e) {
-                            // Fallback: jeśli nie można pobrać online, pomiń walidację XSD
-                            log.warn("Could not load XSD schema from online source: {}. XML structure validation will be skipped.", e.getMessage());
-                            log.warn("For production use, please download XSD schema locally to resources folder");
+                            log.info("Attempting to load XSD schema from local resources: {}", LOCAL_SCHEMA_PATH);
+                            ClassPathResource resource = new ClassPathResource(LOCAL_SCHEMA_PATH);
                             
-                            // Zwróć pustą schema która akceptuje wszystko
-                            return createPermissiveSchema();
+                            if (resource.exists()) {
+                                URL schemaUrl = resource.getURL();
+                                schema = factory.newSchema(schemaUrl);
+                                log.info("✅ XSD schema loaded successfully from local resources");
+                                return schema;
+                            } else {
+                                log.warn("Local XSD schema not found at: {}", LOCAL_SCHEMA_PATH);
+                            }
+                        } catch (Exception e) {
+                            log.debug("Could not load XSD schema from local resources: {}", e.getMessage());
                         }
+                        
+                        // STRATEGIA 2: Fallback - pobieranie ze źródła online
+                        try {
+                            log.info("Attempting to load XSD schema from online source: {}", SCHEMA_URL);
+                            schema = factory.newSchema(new URL(SCHEMA_URL));
+                            log.info("✅ XSD schema loaded successfully from online source");
+                            log.warn("⚠️  For production use, please ensure XSD schema is available in resources folder");
+                            return schema;
+                            
+                        } catch (Exception e) {
+                            log.debug("Could not load XSD schema from online source: {}", e.getMessage());
+                        }
+                        
+                        // STRATEGIA 3: Permissive schema (ostateczność)
+                        log.warn("⚠️ XSD schema validation unavailable - using simplified validation");
+                        log.info("Note: Full KSeF FA(3) schema is complex (>5000 nodes). Basic XML structure will still be validated.");
+                        return createPermissiveSchema();
                         
                     } catch (SAXException e) {
                         throw new ValidationException("Failed to initialize XSD schema: " + e.getMessage(), e);

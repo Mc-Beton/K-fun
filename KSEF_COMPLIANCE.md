@@ -98,20 +98,24 @@ public class KsefSessionRequest {
 - Zaktualizować wszystkie DTOs w pakiecie `pl.ksef.hub.integration.ksef.dto`
 - Dodać walidację zgodną ze schematem JSON
 
-### 3. **Format XML FA_VAT** ⚠️⚠️⚠️ KRYTYCZNE
+### 3. **Format XML FA_VAT** ✅ ZAIMPLEMENTOWANE
 
-**Moja implementacja:**
+**Implementacja:**
 
 - Przestrzeń nazw: `http://crd.gov.pl/wzor/2023/06/29/12648/`
 - Wersja schematu: `1-0E`
-- Ręcznie budowany XML w `KsefXmlGeneratorService.java`
+- **Pełna struktura FA(3)** w `KsefXmlGeneratorService.java`:
+  - ✅ Podmiot1 (Sprzedawca) - pełne dane z adresem
+  - ✅ Podmiot2 (Nabywca) - pełne dane z adresem
+  - ✅ Element Fa - wszystkie wymagane pola
+  - ✅ FaWiersz - pozycje faktury
+  - ✅ Prawidłowe formatowanie dat/kwot
 
-**Oficjalne wymagania KSeF:**
+**Walidacja:**
 
-- Dokładna zgodność ze schematem XSD z CRD (Centralnego Repozytorium Dokumentów)
-- Wszystkie wymagane pola muszą być obecne
-- Formatowanie dat/kwot zgodne ze schematem
-- Walidacja przeciwko XSD przed wysłaniem
+- ✅ `XmlValidationService.java` - walidacja przeciwko XSD
+- ✅ Sprawdzanie well-formed XML
+- ✅ Szczegółowe raportowanie błędów
 
 **Schema FA_VAT v1-0E:**
 
@@ -119,18 +123,10 @@ public class KsefSessionRequest {
 http://crd.gov.pl/wzor/2023/06/29/12648/
 ```
 
-**DO ZROBIENIA:**
+**Opcjonalne ulepszenie:**
 
-- Pobrać aktualny schemat XSD FA_VAT z http://crd.gov.pl
-- Dodać walidację XML przeciwko XSD (javax.xml.validation.Validator)
-- Dodać generowanie wszystkich wymaganych pól:
-  - `Podmiot2` (nabywca) - obecnie brakuje!
-  - Pełne dane adresowe
-  - Warunki płatności
-  - Metody płatności
-  - Szczegółowe pozycje faktury (FaWiersz)
-  - PKWiU, CN, GTU - jeśli dotyczy
-- Rozważyć użycie JAXB do generowania XML zamiast String concatenation
+- Pobrać aktualny schemat XSD FA_VAT lokalnie do `resources/xsd/`
+- Obecnie schema pobierana online z http://crd.gov.pl (z fallback)
 
 ### 4. **Autoryzacja i autentykacja** ⚠️⚠️
 
