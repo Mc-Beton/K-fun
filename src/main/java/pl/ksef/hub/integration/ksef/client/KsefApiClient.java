@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import pl.ksef.hub.integration.ksef.dto.*;
+import pl.ksef.hub.service.SystemNotificationService;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
@@ -27,9 +28,19 @@ import java.util.Base64;
 public class KsefApiClient {
 
     private final WebClient ksefWebClient;
+    private final SystemNotificationService notificationService;
 
     @Value("${ksef.api.timeout:30000}")
     private int timeout;
+    
+    @Value("${ksef.api.base-url}")
+    private String baseUrl;
+    
+    @Value("${ksef.api.environment}")
+    private String environment;
+    
+    // Track connection state to avoid duplicate notifications
+    private volatile Boolean lastConnectionState = null;
 
     /**
      * Otwiera sesję interaktywną w systemie KSeF
@@ -180,6 +191,65 @@ public class KsefApiClient {
             log.error("Failed to get session status. Status: {}, Response: {}",
                     e.getStatusCode(), e.getResponseBodyAsString());
             throw new RuntimeException("Failed to get session status: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Sprawdza dostępność API KSeF
+     * Endpoint: GET /common/Status (publicznie dostępny, bez autoryzacji)
+     */
+    public boolean checkApiStatus() {
+        log.debug("Checking KSeF API status");
+
+        try {
+            String response = ksefWebClient.get()
+                    .uri("/common/Status")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofMillis(5000)) // Krótszy timeout dla health check
+                    .block();
+
+            log.debug("KSeF API is available. Response: {}", response);
+            
+            // Notify on first successful connection or reconnection after failure
+            if (lastConnectionState == null || !lastConnectionState) {
+                notificationService.notifyKsefConnected(environment, baseUrl);
+                lastConnectionState = true;
+            }
+            
+            return true;
+
+        } catch (WebClientResponseException e) {
+            log.warn("KSeF API returned error: {} - {}", e.getStatusCode(), e.getMessage());
+            
+            // Notify on disconnection
+            if (lastConnectionState == null || lastConnectionState) {
+                String reason = String.format("HTTP %s: %s", e.getStatusCode(), e.getStatusText());
+                String details = String.format(
+                        "{\"status_code\": %d, \"url\": \"%s\", \"error\": \"%s\"}",
+                        e.getStatusCode().value(), baseUrl, e.getStatusText()
+                );
+                notificationService.notifyKsefConnectionFailed(reason, details);
+                lastConnectionState = false;
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            log.warn("KSeF API is not available: {}", e.getMessage());
+            
+            // Notify on disconnection
+            if (lastConnectionState == null || lastConnectionState) {
+                String reason = e.getMessage() != null ? e.getMessage() : "Nieznany błąd połączenia";
+                String details = String.format(
+                        "{\"url\": \"%s\", \"exception\": \"%s\"}",
+                        baseUrl, e.getClass().getSimpleName()
+                );
+                notificationService.notifyKsefConnectionFailed(reason, details);
+                lastConnectionState = false;
+            }
+            
+            return false;
         }
     }
 

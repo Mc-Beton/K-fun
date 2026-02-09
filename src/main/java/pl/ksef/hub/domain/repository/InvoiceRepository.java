@@ -36,4 +36,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
                                   Pageable pageable);
     
     boolean existsByTenantIdAndInvoiceNumber(Long tenantId, String invoiceNumber);
+    
+    long countByStatus(Invoice.InvoiceStatus status);
 }

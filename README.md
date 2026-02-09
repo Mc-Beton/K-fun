@@ -12,6 +12,12 @@ Kompleksowa platforma do integracji z polskim systemem **KSeF 2.0** (Krajowy Sys
 - **Multi-tenant** - obsługa wielu firm w jednym systemie
 - **Zarządzanie użytkownikami** - role i uprawnienia (Admin, Manager, User, Viewer)
 - **Faktury** - tworzenie, edycja, wyszukiwanie, eksport
+- **Dashboard Web (Next.js)** - ✨ nowoczesny interfejs webowy do monitorowania
+  - ✅ Real-time status systemu i połączenia z KSeF
+  - ✅ Podgląd wiadomości XML (faktury incoming/outgoing)
+  - ✅ Szczegóły faktur z pełnym XML
+  - ✅ Auto-refresh co 5 sekund
+  - ✅ Responsywny design (Tailwind CSS + shadcn/ui)
 - **KSeF 2.0 API Integration** - pełna integracja z nowym API KSeF
   - ✅ Otwieranie i zamykanie sesji KSeF (endpointy `/api/online/`)
   - ✅ Wysyłanie faktur do KSeF
@@ -76,6 +82,31 @@ mvn spring-boot:run
 - **API**: http://localhost:8080/api
 - **Swagger UI**: http://localhost:8080/api/swagger-ui/index.html
 - **H2 Console** (gdy profil h2): http://localhost:8080/api/h2-console
+
+### 4. Frontend Dashboard (Next.js)
+
+Dashboard webowy znajduje się w katalogu `ksef-hub-frontend/`.
+
+**Instalacja:**
+
+```bash
+cd ksef-hub-frontend
+npm install
+```
+
+**Uruchomienie:**
+
+```bash
+npm run dev
+```
+
+**Dostęp:**
+
+- **Dashboard**: http://localhost:3000
+- Automatyczne połączenie z backendem na localhost:8080
+- Real-time monitoring statusu i wiadomości
+
+**Więcej informacji:** Zobacz [FRONTEND_BACKEND_INTEGRATION.md](FRONTEND_BACKEND_INTEGRATION.md)
 
 ## 🔌 Integracja z KSeF
 
